@@ -1,12 +1,17 @@
 import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
-import slugify from 'slugify';
+import tailwindcss from '@tailwindcss/vite';
+import { slugify } from './scripts/slugify.js';
+
+
+
 import { VitePWA } from 'vite-plugin-pwa';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   base: './',
   plugins: [
+    tailwindcss(),
     svelte(),
     VitePWA({
       registerType: 'autoUpdate',
@@ -35,37 +40,21 @@ export default defineConfig({
       },
     }),
   ],
-  optimizeDeps: {
-    disabled: false,
-    force: true,
-    include: ['browser-assert'],
-  },
-  esbuild: {
-    target: 'chrome100',
-  },
   build: {
     assetsDir: './',
     minify: true,
     outDir: 'build',
-    target: 'chrome100',
     modulePreload: {
       polyfill: false,
     },
-    commonjsOptions: {
-      transformMixedEsModules: true,
-      include: ['browser-assert'],
-    },
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
+    // rollupOptions: {
+    //   output: {
+    //     manualChunks(id) {
+    //       if (!id.includes('node_modules')) return;
 
-          return slugify(
-            id.split('/').pop()?.split('.').shift() ??
-              'vendor.js',
-          ).toLowerCase();
-        },
-      },
-    },
+    //       return 'vendor';
+    //     },
+    //   },
+    // },
   },
 });

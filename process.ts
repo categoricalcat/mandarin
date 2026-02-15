@@ -1,8 +1,5 @@
 import { createReadStream, createWriteStream, unlink } from 'fs';
-import { filter, map, mergeMap, tap, toArray } from 'rxjs';
-
-import { fromFetch } from 'rxjs/fetch';
-
+import { filter, from, map, mergeMap, tap, toArray } from 'rxjs';
 import gz from 'node-gzip';
 
 const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
@@ -18,9 +15,9 @@ const gzip = createWriteStream('./cedict.txt');
 const json = createWriteStream('./public/cedict.json');
 
 console.log('Fetching cedict.txt.gz');
-fromFetch(
+from(fetch(
   'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
-)
+))
   .pipe(
     mergeMap((r) => r.arrayBuffer()),
     mergeMap((r) => gz.ungzip(r)),

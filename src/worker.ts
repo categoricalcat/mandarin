@@ -1,13 +1,12 @@
 import Fuse from 'fuse.js';
-import { mergeMap, mergeAll, map, toArray } from 'rxjs';
-import { fromFetch } from 'rxjs/fetch';
+import { mergeMap, mergeAll, map, toArray, from } from 'rxjs';
 import type { Data, ItemObject } from './vite-env';
 
 const fuse = new Fuse<ItemObject>([], {
   keys: ['hanzi', 'pinyin', 'def'],
 });
 
-const data = fromFetch('./cedict.json').pipe(
+const data = from(fetch('./cedict.json')).pipe(
   mergeMap((r) => r.json() as Promise<Data>),
   mergeAll(),
   map(([hanzi, pinyin, def]) => ({
