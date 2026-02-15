@@ -1,10 +1,6 @@
 <script lang="ts">
-  import {
-    BehaviorSubject,
-    fromEventPattern,
-    map,
-    throttleTime,
-  } from 'rxjs';
+  import { BehaviorSubject, fromEventPattern } from 'rxjs';
+  import { map, throttleTime } from 'rxjs/operators';
   import List from './lib/List.svelte';
   import type { ItemObject } from './vite-env';
   import { numberToMark } from 'pinyin-utils';
@@ -77,7 +73,7 @@
           {$selected.def.replaceAll('/', ' — ')}
         </span>
         <br />
-        定義
+        定义
         <span class="text-neutral-600 absolute ml-3 font-thin"
           >Definition</span
         >
@@ -129,10 +125,9 @@
       <li class="mb-4">
         {@html item.hanzi
           .split(' ')
-          [simplified ? 1 : 0].replaceAll(
-            hanzi,
-            `<span class="text-indigo-600">${hanzi}</span>`,
-          )}
+          [
+            simplified ? 1 : 0
+          ].replaceAll(hanzi, `<span class="text-indigo-600">${hanzi}</span>`)}
 
         <span class="text-neutral-400 ml-1 font-extralight">
           {numberToMark(item.pinyin)}

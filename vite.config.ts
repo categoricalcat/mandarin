@@ -44,9 +44,6 @@ export default defineConfig({
     assetsDir: './',
     minify: true,
     outDir: 'build',
-    modulePreload: {
-      polyfill: false,
-    },
     // rollupOptions: {
     //   output: {
     //     manualChunks(id) {
