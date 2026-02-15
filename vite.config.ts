@@ -44,14 +44,19 @@ export default defineConfig({
     assetsDir: './',
     minify: true,
     outDir: 'build',
-    // rollupOptions: {
-    //   output: {
-    //     manualChunks(id) {
-    //       if (!id.includes('node_modules')) return;
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
 
-    //       return 'vendor';
-    //     },
-    //   },
-    // },
+          const parts = id.toString().split('node_modules/').pop()?.split('/') ?? [];
+          if (parts.length === 0) return 'vendor';
+
+          const name = parts[0].startsWith('@') ? `${parts[0]}/${parts[1]}` : parts[0];
+
+          return slugify(name).toLowerCase();
+        },
+      },
+    },
   },
 });
