@@ -109,7 +109,7 @@
   </div>
 
   <ul class="my-16">
-    {#each related as item (item.hanzi)}
+    {#each related as item (item.hanzi + item.pinyin + item.def)}
       <li class="mb-4">
         {@html item.hanzi
           .split(' ')

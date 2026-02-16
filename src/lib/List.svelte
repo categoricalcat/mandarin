@@ -15,7 +15,7 @@
     id="options"
     role="listbox"
   >
-    {#each marks as [hanzi, pinyin, def] (hanzi)}
+    {#each marks as [hanzi, pinyin, def] (hanzi + pinyin + def)}
       <li
         class="relative py-2 pl-3 pr-9 text-gray-900 hover:bg-slate-200 cursor-pointer"
         id="option-0"
