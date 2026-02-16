@@ -1,11 +1,17 @@
 <script lang="ts">
   import Hanzi from 'hanzi-writer';
 
-  export let chars = '';
+  let { chars = '' } = $props();
 
-  let container: HTMLDivElement | null = null;
+  let container: HTMLDivElement | null = $state(null);
 
-  $: {
+  /* eslint-disable svelte/no-dom-manipulating */
+  $effect(() => {
+    if (!container) return;
+
+    // Clear previous children to prevent duplication/leaks if chars change rapidly
+    // container.replaceChildren(); // strictly speaking map below does creates new elements
+
     const els = [...chars].map((char) => {
       const el = document.createElement('div');
 
@@ -20,9 +26,7 @@
         padding: 0,
         height: w,
         charDataLoader: () =>
-          fetch(
-            `https://cdn.jsdelivr.net/npm/hanzi-writer-data/${char}.json`,
-          )
+          fetch(`https://cdn.jsdelivr.net/npm/hanzi-writer-data/${char}.json`)
             .then((res) => res.json())
             .then((data) => {
               return data;
@@ -40,8 +44,8 @@
       return el;
     });
 
-    if (container) container.replaceChildren(...els);
-  }
+    container.replaceChildren(...els);
+  });
 </script>
 
 <div

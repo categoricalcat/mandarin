@@ -1,6 +1,17 @@
 {
-  "endOfLine": "lf",
+  "semi": true,
   "singleQuote": true,
   "trailingComma": "all",
-  "printWidth": 65
+  "printWidth": 80,
+  "plugins": [
+    "prettier-plugin-svelte"
+  ],
+  "overrides": [
+    {
+      "files": "*.svelte",
+      "options": {
+        "parser": "svelte"
+      }
+    }
+  ]
 }

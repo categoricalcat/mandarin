@@ -1,13 +1,17 @@
 import Fuse from 'fuse.js';
 import type { Data, ItemObject } from './vite-env';
-import { from } from 'rxjs';
+import { fromFetch } from 'rxjs/fetch';
 import { mergeMap, mergeAll, map, toArray } from 'rxjs/operators';
 
-const fuse = new Fuse<ItemObject>([], {
-  keys: ['hanzi', 'pinyin', 'def'],
-});
 
-const data = from(fetch('/cedict.json')).pipe(
+const CACHE_AGE = 2592000; // 1 month
+
+fromFetch('/cedict.json', {
+  cache: 'force-cache',
+  headers: {
+    'Cache-Control': `max-age=${CACHE_AGE}`,
+  },
+}).pipe(
   mergeMap((r) => r.json() as Promise<Data>),
   mergeAll(),
   map(([hanzi, pinyin, def]) => ({
@@ -16,12 +20,24 @@ const data = from(fetch('/cedict.json')).pipe(
     def,
   })),
   toArray<ItemObject>(),
-);
+  map((d) => new Fuse<ItemObject>(d, {
+    keys: ['hanzi', 'pinyin', 'def'],
+    distance: 0,
+    threshold: 0,
+  })),
+).subscribe((fuse) => {
 
-data.subscribe((d) => fuse.setCollection(d));
+  self.addEventListener('message', (e) => {
+    const input = e.data as string;
+    if (!input) return;
 
-self.addEventListener('message', (e) => {
-  self.postMessage(
-    e.data ? fuse.search(e.data).map((r) => r.item) : [],
-  );
+    const results = fuse.search(input);
+    console.log(results);
+
+    self.postMessage(
+      results.map((r) => r.item),
+    );
+  });
 });
+
+
