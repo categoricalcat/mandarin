@@ -1,16 +1,12 @@
 <script lang="ts">
   import { numberToMark } from 'pinyin-utils';
-  import type { ItemObject } from '../vite-env';
-  import { selected } from './store';
+  import { appState } from './store.svelte';
 
-  export let items: ItemObject[] = [];
-  export let simplified = true;
+  let { items = [], simplified = true } = $props();
 
-  $: marks = items.map(({ hanzi, pinyin, def }) => [
-    hanzi,
-    pinyin,
-    def,
-  ]);
+  let marks = $derived(
+    items.slice(0, 100).map(({ hanzi, pinyin, def }) => [hanzi, pinyin, def]),
+  );
 </script>
 
 {#if marks.length}
@@ -19,26 +15,23 @@
     id="options"
     role="listbox"
   >
-    {#each marks as [hanzi, pinyin, def]}
+    {#each marks as [hanzi, pinyin, def] (hanzi)}
       <li
         class="relative py-2 pl-3 pr-9 text-gray-900 hover:bg-slate-200 cursor-pointer"
         id="option-0"
         role="option"
         aria-selected="false"
         tabindex="-1"
-        on:click={() => {
-          selected.set({ hanzi, pinyin, def });
+        onclick={() => {
+          appState.selected = { hanzi, pinyin, def };
           marks = [];
         }}
-        on:keypress={(e) => {
-          if (e.key === 'Enter')
-            selected.set({ hanzi, pinyin, def });
+        onkeypress={(e) => {
+          if (e.key === 'Enter') appState.selected = { hanzi, pinyin, def };
         }}
       >
         <span class="block truncate"
-          >{hanzi.split(' ')[simplified ? 1 : 0]} - {numberToMark(
-            pinyin,
-          )} - {def}</span
+          >{hanzi.split(' ')[simplified ? 1 : 0]} - {numberToMark(pinyin)} - {def}</span
         >
       </li>
     {/each}

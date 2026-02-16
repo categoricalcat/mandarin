@@ -1,5 +1,7 @@
 // import assert from 'browser-assert';
+import { mount } from 'svelte';
 import App from './App.svelte';
+import './app.css';
 
 function assert(
   value: unknown,
@@ -17,8 +19,8 @@ function assert(
 const target = document.getElementById('app');
 assert(target, 'No element with id "app" found');
 
-const app = new App({
+const app = mount(App, {
   target,
-});
+})
 
 export default app;

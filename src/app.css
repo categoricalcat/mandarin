@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/forms";
+
+@theme {
+    --font-sans: "Lato", sans-serif;
+}
+
+body {
+    background-color: #111;
+}
+
+/* Reset or global styles if needed, though Tailwind v4 handles reset automatically via preflight included in the import */
+* {
+    box-sizing: border-box;
+}
