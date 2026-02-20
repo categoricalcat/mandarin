@@ -16,7 +16,7 @@ export type DataItem = [
   definition: string,
 ];
 
-export type Data = DataItem[];
+export type Data = Array<DataItem>;
 
 export type ItemObject = {
   hanzi: string;
