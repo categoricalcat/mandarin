@@ -1,8 +1,7 @@
 <script lang="ts">
   import { BehaviorSubject, fromEventPattern } from 'rxjs';
   import { debounceTime, map } from 'rxjs/operators';
-  import List from './lib/List.svelte';
-  import type { ItemObject } from './vite-env';
+  import type { HanziDataObject, Hanzi as HanziType } from './vite-env';
   import { numberToMark } from 'pinyin-utils';
 
   import { appState } from './lib/store.svelte';
@@ -11,15 +10,25 @@
   import DictWorker from './worker?worker';
   import { onMount } from 'svelte';
 
-  const worker = new DictWorker();
-  const input = new BehaviorSubject('');
-  let simplified = $state(true);
-  let items = $state<ItemObject[]>([]);
+  const getHanziVersion = (hz: HanziType, simp: boolean) =>
+    hz.split(' ')[simp ? 1 : 0];
 
-  const data = fromEventPattern<MessageEvent<ItemObject[]>>(
+  const worker = new DictWorker();
+  const input = new BehaviorSubject('fire');
+  let simplified = $state(true);
+  let items = $state<HanziDataObject[]>([]);
+
+  const PAGE_SIZE = 5;
+  let page = $state(1);
+
+  const data = fromEventPattern<MessageEvent<HanziDataObject[]>>(
     (handler) => worker.addEventListener('message', handler),
     (handler) => worker.removeEventListener('message', handler),
   ).pipe(map((e) => e.data));
+
+  let pagedItems = $derived(
+    items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+  );
 
   onMount(() => {
     input.pipe(debounceTime(250)).subscribe((value) => {
@@ -29,28 +38,45 @@
 
     const sub = data.subscribe((val) => {
       items = val || [];
+      page = 1;
     });
     return () => sub.unsubscribe();
   });
 
-  let pinyin = $derived(appState.selected?.pinyin as string);
-
-  let related = $derived(items?.filter((d) => d.pinyin.includes(pinyin)) || []);
-
-  let hanzi = $derived(
+  let selectedWord = $derived(
     appState.selected
-      ? appState.selected.hanzi.split(' ')[simplified ? 1 : 0]
+      ? getHanziVersion(appState.selected.hanzi, simplified)
       : '',
   );
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (
+      document.activeElement?.tagName === 'INPUT' ||
+      document.activeElement?.tagName === 'TEXTAREA'
+    )
+      return;
+
+    if (e.key === '+' || e.key === '=') {
+      if (page * PAGE_SIZE < items.length) {
+        page++;
+      }
+    } else if (e.key === '-' || e.key === '_') {
+      if (page > 1) {
+        page--;
+      }
+    }
+  }
 </script>
 
-<main class="mx-auto max-w-[320px] p-4 pt-6 text-slate-50">
+<svelte:window onkeydown={handleKeydown} />
+
+<main class="mx-auto max-w-[320px] p-4 pt-6 text-slate-50 flex flex-col gap-10">
   {#if appState.selected}
     <section
       class="mx-auto p-6 rounded flex flex-col gap-y-8 text-center mb-10 border border-neutral-700"
     >
       <div>
-        <Hanzi chars={hanzi} />
+        <Hanzi chars={selectedWord} />
         汉字
         <span class="text-neutral-600 absolute ml-3 font-thin">Hàn Zi</span>
       </div>
@@ -82,6 +108,7 @@
   <div class="relative mt-1">
     <input
       oninput={(e) => input.next(e.currentTarget.value)}
+      value={input.value}
       id="combobox"
       type="text"
       class="w-full rounded-md border border-gray-300 bg-neutral-900 py-2 pl-3 pr-12 shadow-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm"
@@ -104,30 +131,64 @@
         >Simplified?</label
       >
     </fieldset>
-
-    <List {items} {simplified} />
   </div>
 
-  <ul class="my-16">
-    {#each related as item (item.hanzi + item.pinyin + item.def)}
-      <li class="mb-4">
-        {@html item.hanzi
-          .split(' ')
-          [
-            simplified ? 1 : 0
-          ].replaceAll(hanzi, `<span class="text-indigo-600">${hanzi}</span>`)}
+  {#if items.length}
+    <div>
+      <div class="flex justify-around text-white">
+        <button
+          onclick={() => page--}
+          disabled={page === 1}
+          class="px-4 py-2 rounded-md bg-neutral-900 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
+        >
+          -
+        </button>
+        <button
+          onclick={() => page++}
+          disabled={page * PAGE_SIZE >= items.length}
+          class="px-4 py-2 rounded-md bg-neutral-900 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
+        >
+          +
+        </button>
+      </div>
 
-        <span class="text-neutral-400 ml-1 font-extralight">
-          {numberToMark(item.pinyin)}
-        </span>
-        <p class="font-light">
-          {item.def}
-        </p>
+      <!-- current page / out of -->
+      <div class="text-center text-neutral-600">
+        {page} / {Math.ceil(items.length / PAGE_SIZE)}
+      </div>
+    </div>
+  {/if}
+
+  <ul class="flex flex-col gap-2">
+    {#each pagedItems as item (item.hanzi + item.pinyin + item.def)}
+      <li>
+        <button
+          type="button"
+          onclick={() => {
+            appState.selected = item;
+            navigator.clipboard.writeText(
+              getHanziVersion(item.hanzi, simplified),
+            );
+          }}
+          class="select-text w-full hover:text-indigo-600 cursor-pointer hover:bg-neutral-900 p-2 rounded-md"
+        >
+          {@html getHanziVersion(item.hanzi, simplified).replaceAll(
+            selectedWord,
+            `<span class="text-indigo-600">${selectedWord}</span>`,
+          )}
+
+          <span class="text-neutral-400 ml-1 font-extralight">
+            {numberToMark(item.pinyin)}
+          </span>
+          <p class="font-light">
+            {item.def}
+          </p>
+        </button>
       </li>
     {/each}
   </ul>
 
-  <section class="font-thin mt-16 text-neutral-600 hover:text-neutral-400">
+  <section class="font-thin text-neutral-600 hover:text-neutral-400">
     <h3 class="tracking-wide leading-8">Instructions</h3>
 
     <p class="text-sm">

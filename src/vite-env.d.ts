@@ -10,16 +10,14 @@ declare global {
   }
 }
 
-export type DataItem = [
-  hanzi: string,
-  pinyin: string,
-  definition: string,
-];
+type Hanzi = `${string} ${string}`;
 
-export type Data = Array<DataItem>;
+export type HanziData = [hanzi: Hanzi, pinyin: string, definition: string];
 
-export type ItemObject = {
-  hanzi: string;
+export type DictionaryResponse = HanziData[];
+
+export type HanziDataObject = {
+  hanzi: Hanzi;
   pinyin: string;
   def: string;
 };
