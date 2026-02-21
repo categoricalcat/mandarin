@@ -1,7 +1,7 @@
 <script lang="ts">
   import { BehaviorSubject, fromEventPattern } from 'rxjs';
   import { debounceTime, map } from 'rxjs/operators';
-  import type { HanziDataObject, Hanzi as HanziType } from './vite-env';
+  import type { HanziDataObject } from './vite-env';
   import { numberToMark } from 'pinyin-utils';
 
   import { appState } from './lib/store.svelte';
@@ -10,9 +10,6 @@
   import DictWorker from './worker?worker';
   import { onMount } from 'svelte';
 
-  const getHanziVersion = (hz: HanziType, simp: boolean) =>
-    hz.split(' ')[simp ? 1 : 0];
-
   const worker = new DictWorker();
   const input = new BehaviorSubject('fire');
   let simplified = $state(true);
@@ -20,6 +17,9 @@
 
   const PAGE_SIZE = 5;
   let page = $state(1);
+
+  const handleSimplified = (item: HanziDataObject, simp: boolean) =>
+    simp ? item.simplified : item.traditional;
 
   const data = fromEventPattern<MessageEvent<HanziDataObject[]>>(
     (handler) => worker.addEventListener('message', handler),
@@ -44,9 +44,7 @@
   });
 
   let selectedWord = $derived(
-    appState.selected
-      ? getHanziVersion(appState.selected.hanzi, simplified)
-      : '',
+    appState.selected ? handleSimplified(appState.selected, simplified) : '',
   );
 
   function handleKeydown(e: KeyboardEvent) {
@@ -160,19 +158,17 @@
   {/if}
 
   <ul class="flex flex-col gap-2">
-    {#each pagedItems as item (item.hanzi + item.pinyin + item.def)}
+    {#each pagedItems as item (item.simplified + item.pinyin + item.def)}
       <li>
         <button
           type="button"
           onclick={() => {
             appState.selected = item;
-            navigator.clipboard.writeText(
-              getHanziVersion(item.hanzi, simplified),
-            );
+            navigator.clipboard.writeText(handleSimplified(item, simplified));
           }}
           class="w-full cursor-pointer rounded-md p-2 select-text hover:bg-neutral-900 hover:text-indigo-600"
         >
-          {@html getHanziVersion(item.hanzi, simplified).replaceAll(
+          {@html handleSimplified(item, simplified).replaceAll(
             selectedWord,
             `<span class="text-indigo-600">${selectedWord}</span>`,
           )}

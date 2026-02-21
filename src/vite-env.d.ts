@@ -16,10 +16,9 @@ declare module '*.svelte' {
   export default component;
 }
 
-type Hanzi = `${string} ${string}`;
-
 export type HanziData = [
-  hanzi: Hanzi,
+  simplified: string,
+  traditional: string,
   pinyin: string,
   definition: string,
 ];
@@ -27,7 +26,8 @@ export type HanziData = [
 export type DictionaryResponse = HanziData[];
 
 export type HanziDataObject = {
-  hanzi: Hanzi;
+  simplified: string;
+  traditional: string;
   pinyin: string;
   def: string;
 };

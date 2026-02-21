@@ -1,3 +1,4 @@
+*.sqlite
 dev-dist
 build
 cedict.json
