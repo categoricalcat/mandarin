@@ -1,5 +1,5 @@
 import Fuse from 'fuse.js';
-import type { Data, ItemObject } from './vite-env';
+import type { DictionaryResponse, HanziDataObject } from './vite-env';
 import { fromFetch } from 'rxjs/fetch';
 import { mergeMap, mergeAll, map, toArray, catchError } from 'rxjs/operators';
 import { of } from 'rxjs';
@@ -17,22 +17,22 @@ fromFetch(url, {
     'Cache-Control': `max-age=${CACHE_AGE}`,
   },
 }).pipe(
-  mergeMap((r) => r.json() as Promise<Data>),
+  mergeMap((r) => r.json() as Promise<DictionaryResponse>),
   mergeAll(),
   map(([hanzi, pinyin, def]) => ({
     hanzi,
     pinyin,
     def,
   })),
-  toArray<ItemObject>(),
-  map((d) => new Fuse<ItemObject>(d, {
+  toArray<HanziDataObject>(),
+  map((d) => new Fuse<HanziDataObject>(d, {
     keys: ['hanzi', 'pinyin', 'def'],
     distance: 0,
     threshold: 0,
   })),
   catchError((e) => {
     console.error(e);
-    return of(new Fuse<ItemObject>([], {}));
+    return of(new Fuse<HanziDataObject>([], {}));
   }),
 ).subscribe((fuse) => {
 
