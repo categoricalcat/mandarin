@@ -70,40 +70,40 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<main class="mx-auto max-w-[320px] p-4 pt-6 text-slate-50 flex flex-col gap-10">
+<main class="mx-auto flex max-w-[320px] flex-col gap-10 p-4 pt-6 text-slate-50">
   {#if appState.selected}
     <section
-      class="mx-auto p-6 rounded flex flex-col gap-y-8 text-center mb-10 border border-neutral-700"
+      class="mx-auto mb-10 flex flex-col gap-y-8 rounded border border-neutral-700 p-6 text-center"
     >
       <div>
         <Hanzi chars={selectedWord} />
         汉字
-        <span class="text-neutral-600 absolute ml-3 font-thin">Hàn Zi</span>
+        <span class="absolute ml-3 font-thin text-neutral-600">Hàn Zi</span>
       </div>
 
       <div>
-        <span class="text-xl mb-4">
+        <span class="mb-4 text-xl">
           {numberToMark(appState.selected.pinyin)}
         </span>
         <br />
         拼音
-        <span class="text-neutral-600 absolute ml-3 font-thin">Pīn Yin</span>
+        <span class="absolute ml-3 font-thin text-neutral-600">Pīn Yin</span>
       </div>
 
       <div>
-        <span class="text-xl mb-4">
+        <span class="mb-4 text-xl">
           {appState.selected.def.replaceAll('/', ' — ')}
         </span>
         <br />
         定义
-        <span class="text-neutral-600 absolute ml-3 font-thin">Definition</span>
+        <span class="absolute ml-3 font-thin text-neutral-600">Definition</span>
       </div>
     </section>
   {/if}
 
-  <label for="combobox" class="block text-2xl font-bold text-center mb-2">
+  <label for="combobox" class="mb-2 block text-center text-2xl font-bold">
     Type your 拼音
-    <span class="text-neutral-600 absolute ml-3 font-thin">Pīn Yin</span>
+    <span class="absolute ml-3 font-thin text-neutral-600">Pīn Yin</span>
   </label>
   <div class="relative mt-1">
     <input
@@ -111,7 +111,7 @@
       value={input.value}
       id="combobox"
       type="text"
-      class="w-full rounded-md border border-gray-300 bg-neutral-900 py-2 pl-3 pr-12 shadow-sm focus:border-indigo-600 focus:outline-none focus:ring-1 focus:ring-indigo-600 sm:text-sm"
+      class="w-full rounded-md border border-gray-300 bg-neutral-900 py-2 pr-12 pl-3 shadow-sm focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none sm:text-sm"
       role="combobox"
       aria-controls="options"
       aria-expanded={!!items.length}
@@ -127,7 +127,7 @@
       />
       <label
         for="simplified"
-        class="mt-1 text-neutral-600 text-sm absolute ml-2 font-thin"
+        class="absolute mt-1 ml-2 text-sm font-thin text-neutral-600"
         >Simplified?</label
       >
     </fieldset>
@@ -139,14 +139,14 @@
         <button
           onclick={() => page--}
           disabled={page === 1}
-          class="px-4 py-2 rounded-md bg-neutral-900 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
+          class="rounded-md bg-neutral-900 px-4 py-2 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           -
         </button>
         <button
           onclick={() => page++}
           disabled={page * PAGE_SIZE >= items.length}
-          class="px-4 py-2 rounded-md bg-neutral-900 text-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed text-2xl font-bold"
+          class="rounded-md bg-neutral-900 px-4 py-2 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           +
         </button>
@@ -170,14 +170,14 @@
               getHanziVersion(item.hanzi, simplified),
             );
           }}
-          class="select-text w-full hover:text-indigo-600 cursor-pointer hover:bg-neutral-900 p-2 rounded-md"
+          class="w-full cursor-pointer rounded-md p-2 select-text hover:bg-neutral-900 hover:text-indigo-600"
         >
           {@html getHanziVersion(item.hanzi, simplified).replaceAll(
             selectedWord,
             `<span class="text-indigo-600">${selectedWord}</span>`,
           )}
 
-          <span class="text-neutral-400 ml-1 font-extralight">
+          <span class="ml-1 font-extralight text-neutral-400">
             {numberToMark(item.pinyin)}
           </span>
           <p class="font-light">
@@ -189,7 +189,7 @@
   </ul>
 
   <section class="font-thin text-neutral-600 hover:text-neutral-400">
-    <h3 class="tracking-wide leading-8">Instructions</h3>
+    <h3 class="leading-8 tracking-wide">Instructions</h3>
 
     <p class="text-sm">
       In the input box, you can type Pīn Yin, Hàn Zi, or English. It will give

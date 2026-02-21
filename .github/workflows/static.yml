@@ -31,32 +31,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@main
 
-      - uses: pnpm/action-setup@master
-        name: Setup PNPM
+      - uses: oven-sh/setup-bun@v2
+        name: Setup Bun
         with:
-          version: latest
-
-      - uses: actions/setup-node@main
-        name: Setup Node
-        with:
-          node-version: latest
-          cache: 'pnpm'
+          bun-version: latest
 
       - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache install
-        id: cache-install
-        uses: actions/cache@main
-        with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+        run: bun install --frozen-lockfile
 
       - name: Test & Build
         run: |
-          pnpm process && pnpm build
+          bun run process && bun run build
 
       - name: Upload build to Pages
         uses: actions/upload-pages-artifact@main

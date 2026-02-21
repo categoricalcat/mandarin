@@ -10,6 +10,12 @@ declare global {
   }
 }
 
+declare module '*.svelte' {
+  import type { Component } from 'svelte';
+  const component: Component<any>;
+  export default component;
+}
+
 type Hanzi = `${string} ${string}`;
 
 export type HanziData = [
