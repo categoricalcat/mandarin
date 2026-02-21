@@ -12,18 +12,22 @@ declare global {
 
 declare module '*.svelte' {
   import type { Component } from 'svelte';
-  const component: Component<any>;
+  const component: Component<unknown>;
   export default component;
 }
 
-type Hanzi = `${string} ${string}`;
-
-export type HanziData = [hanzi: Hanzi, pinyin: string, definition: string];
+export type HanziData = [
+  simplified: string,
+  traditional: string,
+  pinyin: string,
+  definition: string,
+];
 
 export type DictionaryResponse = HanziData[];
 
 export type HanziDataObject = {
-  hanzi: Hanzi;
+  simplified: string;
+  traditional: string;
   pinyin: string;
   def: string;
 };

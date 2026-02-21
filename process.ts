@@ -1,35 +1,91 @@
 import { unlink } from 'fs';
-import { map, mergeMap, toArray, tap } from 'rxjs';
-import { fromFetch } from 'rxjs/fetch';
-
-const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
+import { map, mergeMap, toArray, tap, from } from 'rxjs';
+import type { HanziData } from './src/vite-env';
+// build.ts
+import { Database } from 'bun:sqlite';
 
 try {
-  unlink('./public/cedict.json', () => {});
-  unlink('./cedict.txt', () => {});
+  if (process.env.RESET) {
+    unlink('cedict.txt', () => {});
+    unlink('public/dict.sqlite', () => {});
+  }
+  unlink('public/cedict.json', () => {});
 } catch (error) {
   console.error(error);
 }
 
+const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
+
+const db = new Database('public/dict.sqlite', { create: true });
+
+console.log(
+  'Creating virtual table dictionary',
+  db.run(`
+  CREATE VIRTUAL TABLE IF NOT EXISTS dictionary 
+  USING fts5(simplified, traditional, pinyin, definition);
+`),
+);
+
+const insert = db.prepare<unknown, DictionaryEntry>(`
+  INSERT INTO dictionary (simplified, traditional, pinyin, definition) 
+  VALUES ($simplified, $traditional, $pinyin, $definition)
+`);
+
+const insertData = db.transaction((entries: HanziData[]) => {
+  for (const [$simplified, $traditional, $pinyin, $definition] of entries) {
+    insert.run({
+      $simplified,
+      $traditional,
+      $pinyin,
+      $definition,
+    });
+  }
+});
+
 console.log('Fetching cedict.txt.gz');
 
-fromFetch(
-  'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
-)
+const cedictFile = Bun.file('./cedict.txt');
+
+const cedictSource = cedictFile
+  .text()
+  .catch(() =>
+    fetch(
+      'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
+    ).then(decompressResponseToString),
+  );
+
+from(cedictSource)
   .pipe(
-    mergeMap(decompressResponseToString),
-    tap((text) => Bun.write('./cedict.txt', text)),
+    tap((text) =>
+      cedictFile.exists().then((exists) => {
+        console.log('cedict.txt exists', exists);
+        if (!exists) Bun.write('./cedict.txt', text);
+      }),
+    ),
     mergeMap((text) => text.split(/\r\n/g)),
     mergeMap((line) => Array.from(line.matchAll(regex))),
-    map(([, word, pinyin, definition]) => [word, pinyin, definition]),
+    map(([, word, pinyin, definition]): HanziData => {
+      const [simplified, traditional] = word.split(' ');
+
+      return [simplified, traditional, pinyin, definition];
+    }),
     toArray(),
+    tap((result) => insertData(result)),
     mergeMap((result) =>
       Bun.write('./public/cedict.json', JSON.stringify(result)),
     ),
   )
   .subscribe({
-    next: () => console.log('Successfully generated cedict.json'),
-    error: (err) => console.error('Error processing:', err),
+    complete: () => {
+      console.log('Successfully generated cedict.json');
+      db.close();
+      process.exit(0);
+    },
+    error: (err) => {
+      console.error('Error processing: \n', err);
+      db.close();
+      process.exit(1);
+    },
   });
 
 function decompressResponseToString(response: Response): Promise<string> {
@@ -42,3 +98,10 @@ function decompressResponseToString(response: Response): Promise<string> {
   );
   return new Response(decompressed).text();
 }
+
+type DictionaryEntry = {
+  $simplified: string;
+  $traditional: string;
+  $pinyin: string;
+  $definition: string;
+};

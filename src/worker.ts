@@ -7,8 +7,9 @@ import { of } from 'rxjs';
 const CACHE_AGE = 2592000; // 1 month
 
 const dataToObject = (data: DictionaryResponse): HanziDataObject[] => {
-  return data.map(([hanzi, pinyin, def]) => ({
-    hanzi,
+  return data.map(([simplified, traditional, pinyin, def]) => ({
+    simplified,
+    traditional,
     pinyin,
     def,
   }));
@@ -31,7 +32,8 @@ fromFetch(url, {
       (d) =>
         new Fuse<HanziDataObject>(d, {
           keys: [
-            { name: 'hanzi', weight: 3 },
+            { name: 'simplified', weight: 3 },
+            { name: 'traditional', weight: 3 },
             { name: 'pinyin', weight: 2 },
             { name: 'def', weight: 1 },
           ],
