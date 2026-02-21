@@ -1,39 +1,44 @@
-import { createWriteStream, unlinkSync } from 'fs';
-import { filter, map, mergeMap, tap, toArray } from 'rxjs';
-import gz from 'node-gzip';
+import { unlink } from 'fs';
+import { map, mergeMap, toArray, tap } from 'rxjs';
 import { fromFetch } from 'rxjs/fetch';
 
 const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
 
 try {
-    unlinkSync('./public/cedict.json');
-    unlinkSync('./cedict.txt');
-} catch (e) {
-    console.log(`Ignoring ${e}`);
+  unlink('./public/cedict.json', () => {});
+  unlink('./cedict.txt', () => {});
+} catch (error) {
+  console.error(error);
 }
 
-const cedictText = createWriteStream('./cedict.txt');
-const json = createWriteStream('./public/cedict.json');
+console.log('Fetching cedict.txt.gz');
 
 fromFetch(
-    'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
+  'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz',
 )
-    .pipe(
-        mergeMap((r) => r.arrayBuffer()),
-        mergeMap((r) => gz.ungzip(r)),
-        map((r) => r.toString()),
-        tap((s) => cedictText.write(s)),
-        tap(() => cedictText.close()),
-        mergeMap((chunk) => chunk.split(/\r\n/g)),
-        mergeMap((s) => s.matchAll(regex)),
-        map(([, word, pinyin, definition]) => [word, pinyin, definition]),
-        filter((a) => a.length > 0),
-        toArray(),
-        tap((xs) => json.write(JSON.stringify(xs))),
-    )
-    .subscribe({
-        complete() {
-            console.log('Process was processed');
-            json.close();
-        },
-    });
+  .pipe(
+    mergeMap(decompressResponseToString),
+    tap((text) => Bun.write('./cedict.txt', text)),
+    mergeMap((text) => text.split(/\r\n/g)),
+    mergeMap((line) => Array.from(line.matchAll(regex))),
+    map(([, word, pinyin, definition]) => [word, pinyin, definition]),
+    toArray(),
+    mergeMap((result) =>
+      Bun.write('./public/cedict.json', JSON.stringify(result)),
+    ),
+  )
+  .subscribe({
+    next: () => console.log('Successfully generated cedict.json'),
+    error: (err) => console.error('Error processing:', err),
+  });
+
+function decompressResponseToString(response: Response): Promise<string> {
+  if (!response.body) {
+    throw new Error('Failed to fetch cedict.txt.gz');
+  }
+
+  const decompressed = response.body.pipeThrough(
+    new DecompressionStream('gzip'),
+  );
+  return new Response(decompressed).text();
+}
