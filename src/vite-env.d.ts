@@ -23,8 +23,6 @@ export type HanziData = [
   definition: string,
 ];
 
-export type DictionaryResponse = HanziData[];
-
 export type HanziDataObject = {
   simplified: string;
   traditional: string;

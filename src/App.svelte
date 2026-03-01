@@ -11,7 +11,7 @@
   import { onMount } from 'svelte';
 
   const worker = new DictWorker();
-  const input = new BehaviorSubject('fire');
+  const input = new BehaviorSubject('');
   let simplified = $state(true);
   let items = $state<HanziDataObject[]>([]);
 
@@ -31,7 +31,7 @@
   );
 
   onMount(() => {
-    input.pipe(debounceTime(250)).subscribe((value) => {
+    input.pipe(debounceTime(100)).subscribe((value) => {
       items = [];
       worker.postMessage(value);
     });
