@@ -63,7 +63,6 @@ forkJoin([initSqlite$, fetchDb$])
             FROM dictionary
             WHERE dictionary MATCH $match
             ORDER BY bm25(dictionary, 3.0, 3.0, 2.0, 1.0)
-            LIMIT 50
           `,
           bind: { $match: match },
           rowMode: 'object',

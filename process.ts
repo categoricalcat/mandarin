@@ -1,17 +1,16 @@
-import { unlink } from 'fs';
+import { unlinkSync } from 'fs';
 import { map, mergeMap, toArray, tap, from } from 'rxjs';
 import type { HanziData } from './src/vite-env';
 // build.ts
 import { Database } from 'bun:sqlite';
 
 try {
-  if (process.env.RESET) {
-    unlink('cedict.txt', () => {});
-    unlink('public/dict.sqlite', () => {});
-  }
-  unlink('public/cedict.json', () => {});
-} catch (error) {
-  console.error(error);
+  unlinkSync('cedict.txt');
+  unlinkSync('public/dict.sqlite');
+  unlinkSync('public/cedict.json');
+} catch (e) {
+  console.error(e);
+  process.exit(1);
 }
 
 const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
@@ -19,15 +18,29 @@ const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
 const db = new Database('public/dict.sqlite', { create: true });
 
 console.log(
-  'Creating virtual table dictionary',
+  'Creating tables',
+  db.run(`
+  CREATE TABLE IF NOT EXISTS entries (
+    rowid INTEGER PRIMARY KEY,
+    simplified TEXT,
+    traditional TEXT,
+    pinyin TEXT,
+    definition TEXT
+  );
+`),
   db.run(`
   CREATE VIRTUAL TABLE IF NOT EXISTS dictionary 
-  USING fts5(simplified, traditional, pinyin, definition);
+  USING fts5(
+    simplified, traditional, pinyin, definition,
+    content='entries',
+    content_rowid='rowid',
+    detail=column
+  );
 `),
 );
 
 const insert = db.prepare<unknown, DictionaryEntry>(`
-  INSERT INTO dictionary (simplified, traditional, pinyin, definition) 
+  INSERT INTO entries (simplified, traditional, pinyin, definition) 
   VALUES ($simplified, $traditional, $pinyin, $definition)
 `);
 
@@ -78,6 +91,10 @@ from(cedictSource)
   .subscribe({
     complete: () => {
       console.log('Successfully generated cedict.json');
+      console.log('Rebuilding FTS index...');
+      db.run("INSERT INTO dictionary(dictionary) VALUES('rebuild')");
+      console.log('Vacuuming database...');
+      db.run('VACUUM');
       db.close();
       process.exit(0);
     },
