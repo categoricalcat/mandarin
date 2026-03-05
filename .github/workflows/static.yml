@@ -4,7 +4,7 @@ name: Deploy static content to Pages
 on:
   # Runs on pushes targeting the default branch
   push:
-    branches: ['main']
+    branches: ["main"]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -16,7 +16,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'main'
+  group: "main"
   cancel-in-progress: true
 
 jobs:
@@ -28,40 +28,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@main
+      - uses: actions/checkout@main
 
-      - uses: pnpm/action-setup@master
-        name: Setup PNPM
+      - uses: oven-sh/setup-bun@main
         with:
-          version: latest
+          bun-version: latest
 
-      - uses: actions/setup-node@main
-        name: Setup Node
-        with:
-          node-version: latest
-          cache: 'pnpm'
-
-      - name: Install
-        run: pnpm install --frozen-lockfile
-
-      - name: Cache install
-        id: cache-install
-        uses: actions/cache@main
-        with:
-          path: |
-            ~/.pnpm-store
-            node_modules
-          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
-
-      - name: Test & Build
-        run: |
-          pnpm process && pnpm build
+      - run: bun install --frozen-lockfile
+      - run: bun run process
+      - run: bun run build
 
       - name: Upload build to Pages
         uses: actions/upload-pages-artifact@main
         with:
-          path: './build'
+          path: "./build"
 
       - name: Setup Pages
         uses: actions/configure-pages@main

@@ -10,16 +10,22 @@ declare global {
   }
 }
 
-export type DataItem = [
-  hanzi: string,
+declare module '*.svelte' {
+  import type { Component } from 'svelte';
+  const component: Component<unknown>;
+  export default component;
+}
+
+export type HanziData = [
+  simplified: string,
+  traditional: string,
   pinyin: string,
   definition: string,
 ];
 
-export type Data = Array<DataItem>;
-
-export type ItemObject = {
-  hanzi: string;
+export type HanziDataObject = {
+  simplified: string;
+  traditional: string;
   pinyin: string;
   def: string;
 };
