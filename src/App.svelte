@@ -1,74 +1,84 @@
 <script lang="ts">
+  import { numberToMark } from 'pinyin-utils';
   import { BehaviorSubject, fromEventPattern } from 'rxjs';
   import { debounceTime, map } from 'rxjs/operators';
-  import type { HanziDataObject } from './vite-env';
-  import { numberToMark } from 'pinyin-utils';
-
-  import { appState } from './lib/store.svelte';
-  import Hanzi from './lib/Hanzi.svelte';
-
-  import DictWorker from './worker?worker';
   import { onMount } from 'svelte';
-
-  const worker = new DictWorker();
-  const input = new BehaviorSubject('');
-  let simplified = $state(true);
-  let items = $state<HanziDataObject[]>([]);
+  import Hanzi from './lib/Hanzi.svelte';
+  import { appState } from './lib/store.svelte';
+  import type { HanziDataObject } from './vite-env';
+  import DictWorker from './worker?worker';
 
   const PAGE_SIZE = 5;
+
+  const worker = new DictWorker({
+    name: 'dict-worker',
+  });
+
   let page = $state(1);
+  let simplified = $state(true);
+  let items = $state<HanziDataObject[]>([]);
+  const input = new BehaviorSubject('');
+  const input$ = input.pipe(debounceTime(100));
+
+  let pagedItems = $derived(
+    items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+  );
 
   const handleSimplified = (item: HanziDataObject, simp: boolean) =>
     simp ? item.simplified : item.traditional;
+
+  let selectedWord = $derived(
+    appState.selected ? handleSimplified(appState.selected, simplified) : '',
+  );
+
+  const handleKeydown = (e: KeyboardEvent) => {
+    if (e.key === '+' || e.key === '=') {
+      e.preventDefault();
+      if (page * PAGE_SIZE < items.length) {
+        page++;
+      }
+      return;
+    }
+
+    if (e.key === '-' || e.key === '_') {
+      e.preventDefault();
+      if (page > 1) {
+        page--;
+      }
+      return;
+    }
+
+    if (
+      document.activeElement?.tagName === 'INPUT' ||
+      document.activeElement?.tagName === 'TEXTAREA'
+    )
+      return;
+  };
 
   const data = fromEventPattern<MessageEvent<HanziDataObject[]>>(
     (handler) => worker.addEventListener('message', handler),
     (handler) => worker.removeEventListener('message', handler),
   ).pipe(map((e) => e.data));
 
-  let pagedItems = $derived(
-    items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-  );
-
   onMount(() => {
-    input.pipe(debounceTime(100)).subscribe((value) => {
-      items = [];
-      worker.postMessage(value);
-    });
+    const subInput = input$.subscribe(worker.postMessage.bind(worker));
 
-    const sub = data.subscribe((val) => {
+    const subData = data.subscribe((val) => {
       items = val || [];
       page = 1;
     });
-    return () => sub.unsubscribe();
+
+    return () => {
+      subInput.unsubscribe();
+      subData.unsubscribe();
+    };
   });
-
-  let selectedWord = $derived(
-    appState.selected ? handleSimplified(appState.selected, simplified) : '',
-  );
-
-  function handleKeydown(e: KeyboardEvent) {
-    if (
-      document.activeElement?.tagName === 'INPUT' ||
-      document.activeElement?.tagName === 'TEXTAREA'
-    )
-      return;
-
-    if (e.key === '+' || e.key === '=') {
-      if (page * PAGE_SIZE < items.length) {
-        page++;
-      }
-    } else if (e.key === '-' || e.key === '_') {
-      if (page > 1) {
-        page--;
-      }
-    }
-  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <main class="mx-auto flex max-w-[320px] flex-col gap-10 p-4 pt-6 text-slate-50">
+  <h1 class="sr-only">Mandarin Dictionary</h1>
   {#if appState.selected}
     <section
       class="mx-auto mb-10 flex flex-col gap-y-8 rounded border border-neutral-700 p-6 text-center"
@@ -103,7 +113,8 @@
     Type your 拼音
     <span class="absolute ml-3 font-thin text-neutral-600">Pīn Yin</span>
   </label>
-  <div class="relative mt-1">
+  <fieldset class="relative mt-1">
+    <!-- svelte-ignore a11y_autofocus -->
     <input
       oninput={(e) => input.next(e.currentTarget.value)}
       value={input.value}
@@ -113,9 +124,11 @@
       role="combobox"
       aria-controls="options"
       aria-expanded={!!items.length}
+      aria-autocomplete="list"
+      autofocus
     />
 
-    <fieldset class="absolute">
+    <div class="absolute">
       <input
         bind:checked={simplified}
         type="checkbox"
@@ -128,38 +141,43 @@
         class="absolute mt-1 ml-2 text-sm font-thin text-neutral-600"
         >Simplified?</label
       >
-    </fieldset>
-  </div>
+    </div>
+  </fieldset>
 
   {#if items.length}
-    <div>
-      <div class="flex justify-around text-white">
+    <div class="-mb-6">
+      <!-- current page / out of -->
+      <div class="text-center text-neutral-600">
+        {page} / {Math.ceil(items.length / PAGE_SIZE)}
+      </div>
+
+      <div class="flex justify-center gap-2 text-white">
         <button
           onclick={() => page--}
           disabled={page === 1}
-          class="rounded-md bg-neutral-900 px-4 py-2 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Previous page"
+          class="cursor-pointer px-4 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           -
         </button>
         <button
           onclick={() => page++}
           disabled={page * PAGE_SIZE >= items.length}
-          class="rounded-md bg-neutral-900 px-4 py-2 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
+          aria-label="Next page"
+          class="cursor-pointer px-4 text-2xl font-bold text-indigo-600 disabled:cursor-not-allowed disabled:opacity-50"
         >
           +
         </button>
       </div>
-
-      <!-- current page / out of -->
-      <div class="text-center text-neutral-600">
-        {page} / {Math.ceil(items.length / PAGE_SIZE)}
-      </div>
     </div>
   {/if}
 
-  <ul class="flex flex-col gap-2">
+  <ul class="flex flex-col gap-2" id="options" role="listbox">
     {#each pagedItems as item (item.simplified + item.pinyin + item.def)}
-      <li>
+      <li
+        role="option"
+        aria-selected={appState.selected === item ? 'true' : 'false'}
+      >
         <button
           type="button"
           onclick={() => {
@@ -168,10 +186,16 @@
           }}
           class="w-full cursor-pointer rounded-md p-2 select-text hover:bg-neutral-900 hover:text-indigo-600"
         >
-          {@html handleSimplified(item, simplified).replaceAll(
-            selectedWord,
-            `<span class="text-indigo-600">${selectedWord}</span>`,
-          )}
+          {#if selectedWord}
+            {#each handleSimplified(item, simplified).split(selectedWord) as part, i (i)}
+              {#if i > 0}
+                <span class="text-indigo-600">{selectedWord}</span>
+              {/if}
+              {part}
+            {/each}
+          {:else}
+            {handleSimplified(item, simplified)}
+          {/if}
 
           <span class="ml-1 font-extralight text-neutral-400">
             {numberToMark(item.pinyin)}
@@ -185,7 +209,7 @@
   </ul>
 
   <section class="font-thin text-neutral-600 hover:text-neutral-400">
-    <h3 class="leading-8 tracking-wide">Instructions</h3>
+    <h2 class="text-lg leading-8 tracking-wide">Instructions</h2>
 
     <p class="text-sm">
       In the input box, you can type Pīn Yin, Hàn Zi, or English. It will give

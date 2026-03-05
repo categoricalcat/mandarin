@@ -1,8 +1,8 @@
-import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import type { HanziDataObject } from './vite-env';
+import sqlite3InitModule, { type Database } from '@sqlite.org/sqlite-wasm';
+import { combineLatest, forkJoin, from, fromEvent, of } from 'rxjs';
 import { fromFetch } from 'rxjs/fetch';
-import { mergeMap, map, catchError } from 'rxjs/operators';
-import { of, from, forkJoin } from 'rxjs';
+import { catchError, map, mergeMap } from 'rxjs/operators';
+import type { HanziDataObject } from './vite-env';
 
 const CACHE_AGE = 2592000; // 1 month
 
@@ -18,60 +18,66 @@ const fetchDb$ = fromFetch(url, {
 }).pipe(mergeMap((r) => r.arrayBuffer()));
 
 const initSqlite$ = from(sqlite3InitModule());
+const message$ = fromEvent<MessageEvent<string>>(self, 'message');
 
-forkJoin([initSqlite$, fetchDb$])
-  .pipe(
-    map(([sqlite3, arrayBuffer]) => {
-      const p = sqlite3.wasm.allocFromTypedArray(arrayBuffer);
-      const db = new sqlite3.oo1.DB();
-      const rc = sqlite3.capi.sqlite3_deserialize(
-        db.pointer!,
-        'main',
-        p,
-        arrayBuffer.byteLength,
-        arrayBuffer.byteLength,
-        sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE,
-      );
-      db.checkRc(rc);
-      return db;
-    }),
-    catchError((e) => {
-      console.error(e);
-      return of(e as Error);
-    }),
-  )
-  .subscribe((db) => {
-    if (db instanceof Error) {
-      console.error(db);
-      return;
-    }
+const db$ = forkJoin([initSqlite$, fetchDb$]).pipe(
+  map(([sqlite3, arrayBuffer]) => {
+    const p = sqlite3.wasm.allocFromTypedArray(arrayBuffer);
+    const db = new sqlite3.oo1.DB();
+    const rc = sqlite3.capi.sqlite3_deserialize(
+      db.pointer!,
+      'main',
+      p,
+      arrayBuffer.byteLength,
+      arrayBuffer.byteLength,
+      sqlite3.capi.SQLITE_DESERIALIZE_FREEONCLOSE,
+    );
+    db.checkRc(rc);
 
-    self.addEventListener('message', (e) => {
-      const input = e.data as string;
-      if (!input) return;
+    return db;
+  }),
+  catchError((e) => {
+    return of(e as Error);
+  }),
+);
 
-      const match = input
-        .trim()
-        .split(/\s+/)
-        .map((x) => `"${x.replace(/"/g, '""')}*"`)
-        .join(' AND ');
+combineLatest([db$, message$]).subscribe(([db, message]) => {
+  console.log({ db, message });
+  if (db instanceof Error) {
+    console.error(db);
+    return;
+  }
 
-      try {
-        const results = db.exec({
-          sql: `
+  const input = message.data as string;
+  if (!input) return;
+
+  const results = query(db, input);
+
+  self.postMessage(results);
+});
+
+function query(db: Database, input: string) {
+  const match = input
+    .trim()
+    .split(/\s+/)
+    .map((x) => `"${x.replace(/"/g, '""')}*"`)
+    .join(' AND ');
+
+  try {
+    const results = db.exec({
+      sql: `
             SELECT simplified, traditional, pinyin, definition AS def
             FROM dictionary
             WHERE dictionary MATCH $match
             ORDER BY bm25(dictionary, 3.0, 3.0, 2.0, 1.0)
           `,
-          bind: { $match: match },
-          rowMode: 'object',
-        }) as unknown as HanziDataObject[];
+      bind: { $match: match },
+      rowMode: 'object',
+    }) as unknown as HanziDataObject[];
 
-        self.postMessage(results);
-      } catch (err) {
-        console.error(err);
-        self.postMessage([]);
-      }
-    });
-  });
+    return results;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
