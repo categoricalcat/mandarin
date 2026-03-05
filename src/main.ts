@@ -4,7 +4,7 @@ if (
   localStorage.getItem('acknowledged') !== 'true'
 ) {
   const acknowledgement = confirm(
-    'do you consent to download the 19MB dictionary database?',
+    'do you consent downloading the 9MB dictionary database?',
   );
   if (acknowledgement) {
     localStorage.setItem('acknowledged', 'true');
