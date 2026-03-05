@@ -7,8 +7,8 @@ import type { HanziDataObject } from './vite-env';
 const CACHE_AGE = 2592000; // 1 month
 
 const url = import.meta.env.DEV
-  ? new URL('../dict.sqlite', import.meta.url).href
-  : new URL('./dict.sqlite', import.meta.url).href;
+  ? new URL(/* @vite-ignore */ '../dict.sqlite', import.meta.url).href
+  : new URL(/* @vite-ignore */ './dict.sqlite', import.meta.url).href;
 
 const fetchDb$ = fromFetch(url, {
   cache: 'force-cache',
