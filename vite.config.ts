@@ -1,9 +1,6 @@
-import { defineConfig } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import tailwindcss from '@tailwindcss/vite';
-import { slugify } from './scripts/slugify.js';
-
-
+import { defineConfig } from 'vite';
 
 import { VitePWA } from 'vite-plugin-pwa';
 
@@ -53,19 +50,5 @@ export default defineConfig({
     assetsDir: './',
     minify: true,
     outDir: 'build',
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          if (!id.includes('node_modules')) return;
-
-          const parts = id.toString().split('node_modules/').pop()?.split('/') ?? [];
-          if (parts.length === 0) return 'vendor';
-
-          const name = parts[0].startsWith('@') ? `${parts[0]}/${parts[1]}` : parts[0];
-
-          return slugify(name).toLowerCase();
-        },
-      },
-    },
   },
 });

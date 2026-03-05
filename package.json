@@ -9,9 +9,11 @@
     "dev": "vite",
     "postinstall": "bun run process",
     "preview": "vite preview",
-    "process": "bun process.ts"
+    "process": "bun process.ts",
+    "sort": "npx sort-package-json"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-mono": "^5.2.10",
     "@sqlite.org/sqlite-wasm": "^3.51.2-build6",
     "@sveltejs/vite-plugin-svelte": "^6.2.4",
     "@tailwindcss/forms": "^0.5.11",
