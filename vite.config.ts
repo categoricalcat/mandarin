@@ -22,8 +22,15 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
-      injectRegister: 'script',
+      injectRegister: 'script-defer',
       outDir: 'build',
+      workbox: {
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        maximumFileSizeToCacheInBytes: 30000000,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,json,sqlite,wasm}'],
+      },
       manifest: {
         name: 'Mandarin Learner Tool',
         short_name: 'Mandarin Tool',
