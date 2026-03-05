@@ -1,5 +1,5 @@
 import { unlinkSync } from 'fs';
-import { map, mergeMap, toArray, tap, from } from 'rxjs';
+import { from, map, mergeMap, tap, toArray } from 'rxjs';
 import type { HanziData } from './src/vite-env';
 // build.ts
 import { Database } from 'bun:sqlite';
@@ -10,7 +10,6 @@ try {
   unlinkSync('public/cedict.json');
 } catch (e) {
   console.error(e);
-  process.exit(1);
 }
 
 const regex = /(.*)\s\[(.*)\]\s\/(.*)\//giu;
